@@ -1,0 +1,7 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+.idea/
+tests/encryption_private_key.pem
+encryption_public_key.pem

@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_DB: iam
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    container_name: redis
+    command: [
+      "redis-server",
+      "--maxmemory", "1024mb",
+      "--maxmemory-policy", "allkeys-lru"
+    ]
+    ports:
+      - "6379:6379"
+
+  iam_service:
+    build:
+      context: ./microservices/identity_and_access_management
+    container_name: iam_service
+    environment:
+      POSTGRES_CONNECTION_STRING: postgresql+asyncpg://user:password@postgres:5432/iam
+      CONFIG: prod
+      ENCRYPTION_FILE_PATH: /app/encryption_private_key.pem
+    ports:
+      - "8001:8000"
+    depends_on:
+      - postgres
+
+  article_service:
+    build:
+      context: ./microservices/article_management
+    container_name: article_service
+    environment:
+      MONGO_CONNECTION_STRING: mongodb://mongodb:27017
+      MONGO_DATABASE_NAME: article_management
+      ENCRYPTION_FILE_PATH: /app/encryption_public_key.pem
+      REDIS_CONNECTION_STRING: redis://redis:6379
+      CONFIG: prod
+    ports:
+      - "8002:8000"
+    depends_on:
+      - mongodb
+      - redis
+
+  review_service:
+    build:
+      context: ./microservices/review_management
+    container_name: review_service
+    environment:
+      MONGO_CONNECTION_STRING: mongodb://mongodb:27017
+      MONGO_DATABASE_NAME: review_management
+      ENCRYPTION_FILE_PATH: /app/encryption_public_key.pem
+      REDIS_CONNECTION_STRING: redis://redis:6379
+      CONFIG: prod
+    ports:
+      - "8003:8000"
+    depends_on:
+      - mongodb
+      - redis
+
+  background_job_worker:
+    build:
+      context: ./background_job_handler
+    container_name: rating_job
+    privileged: true   # Required for systemd
+    volumes:
+      - rating_job_data:/opt/rating_calculator
+    depends_on:
+      - mongodb
+
+volumes:
+  postgres_data:
+  mongo_data:
+  rating_job_data:

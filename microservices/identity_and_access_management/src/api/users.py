@@ -1,0 +1,46 @@
+import asyncio
+
+from fastapi import Request
+from passlib import hash
+from sqlmodel import select
+
+from src.models.roles import RoleModel
+from src.models.users import UserModel
+from src.security.exceptions import AppException
+
+
+def init_users_api(app):
+    @app.post("/api/v1/users", status_code=201)
+    async def create_user(user: UserModel, request: Request):
+        hashed_password = await asyncio.wrap_future(
+            request.app.thread_pool.submit(hash.bcrypt.hash, user.password)
+        )
+        user.password = hashed_password
+        async with request.app.pg_session() as session:
+            role = (await session.exec(select(RoleModel).where(RoleModel.name == user.role_id))).first()
+            if not role:
+                raise AppException(
+                    error_message="Role not found",
+                    error_code="exceptions.roleNotFound",
+                    status_code=404
+                )
+            session.add(user)
+            await session.commit()
+
+        # not return hashed password to client
+        del user.password
+
+        return user
+
+    # TODO add this endpoints
+    # @app.get("/api/v1/users/{user_id}")
+    # async def get_user(user_id: str, request: Request):
+    #     return {"status": "ok"}
+    #
+    # @app.put("/api/v1/users/{user_id}")
+    # async def update_user(user_id: str, request: Request):
+    #     return {"status": "ok"}
+    #
+    # @app.delete("/api/v1/users/{user_id}")
+    # async def delete_user(user_id: str, request: Request):
+    #     return {"status": "ok"}
