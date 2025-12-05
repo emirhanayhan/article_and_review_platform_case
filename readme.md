@@ -92,6 +92,10 @@ Navigate to the project root directory where docker-compose.yml exists
 docker compose up --build -d
 ```
 
+## Endpoint Details
+option 1-) Endpoint details can be found under microservice_directory/readme.md
+option 2-) example swagger api address http://localhost:8000/docs
+
 ### Testing microservices
 ```bash
    pytest # will automatically locate tests in tests directory
