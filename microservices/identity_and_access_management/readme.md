@@ -16,8 +16,8 @@ This microservice is responsible for handling all core user identity, authentica
 
 1.  **Clone the Repository:**
     ```bash
-    git clone git
-    cd [YOUR_REPO_DIR]
+    git clone [URL]
+    cd [REPO_DIR]
     ```
 
 2.  **Install Dependencies:**
